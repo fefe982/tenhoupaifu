@@ -160,14 +160,25 @@ namespace Tenhou
                             string fu = ten[0]; string soten = ten[1]; string man = ManGan[int.Parse(ten[2])];
                             int fan = 0;
                             string yaku = "";
-                            string[] nYaku = node.Attributes["yaku"].Value.Split(',');
-                            for (int j = 0; j < nYaku.Length; j += 2)
+                            if (node.Attributes["yaku"] != null)
                             {
-                                yaku += Yaku[int.Parse(nYaku[j])] + "(" + nYaku[j + 1] + ") ";
-                                fan += int.Parse(nYaku[j + 1]);
+                                string[] nYaku = node.Attributes["yaku"].Value.Split(',');
+                                for (int j = 0; j < nYaku.Length; j += 2)
+                                {
+                                    yaku += Yaku[int.Parse(nYaku[j])] + "(" + nYaku[j + 1] + ") ";
+                                    fan += int.Parse(nYaku[j + 1]);
+                                }
+                                yaku += fu + "符" + fan.ToString() + "飜" + man + "(" + soten + ")";
                             }
-                            yaku += fu + "符" + fan.ToString() + "飜" + man + "(" + soten + ")";
-
+                            else
+                            {
+                                string[] nYaku = node.Attributes["yakuman"].Value.Split(',');
+                                for (int j = 0; j < nYaku.Length; j++)
+                                {
+                                    yaku += Yaku[int.Parse(nYaku[j])] + " ";
+                                }
+                                yaku += "(" + soten + ")";
+                            }
                             // Reach
                             PrintReach();
 
