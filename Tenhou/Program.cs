@@ -174,6 +174,18 @@ namespace Tenhou
                             string fu = ten[0]; string soten = ten[1]; string man = ManGan[int.Parse(ten[2])];
                             int fan = 0;
                             string yaku = "";
+
+                            who = int.Parse(node.Attributes["who"].Value);
+                            int fromWho = int.Parse(node.Attributes["fromWho"].Value);
+                            if (who == fromWho)
+                            {
+                                yaku = "[" + who + "]自摸  ";
+                            }
+                            else
+                            {
+                                yaku = "[" + who + "]栄[" + fromWho + "] ";
+                            }
+                            
                             if (node.Attributes["yaku"] != null)
                             {
                                 string[] nYaku = node.Attributes["yaku"].Value.Split(',');
