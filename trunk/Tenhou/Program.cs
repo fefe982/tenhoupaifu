@@ -12,7 +12,7 @@ namespace Tenhou
     {
         static void Main(string[] args)
         {
-            string dirPath = "C:\\Documents and Settings\\YongxinWang\\My Documents\\My Tenhou\\log\\200910";
+            string dirPath = args[0];
             string dirName = "200910";
             string[] files = Directory.GetFiles(dirPath, "*.mjlog");
             foreach (string filePath in files)
@@ -78,7 +78,13 @@ namespace Tenhou
 	        //// 懸賞役
 	        "ドラ","裏ドラ","赤ドラ"
         };
-        static bool[] flagReach = new bool[4];
+        private static string[] Reach =
+        {
+            "",
+            "立直",
+            "副露"
+        };
+        static int[] flagReach = new int[4];
         static bool flagRPrint = false;
         static string splitLine = "  ----------------------------------------------";
         static public void processMjlog(string dirName, string filePath)
@@ -143,16 +149,24 @@ namespace Tenhou
                             Console.Write("  " + Ba[int.Parse(seed[0])] + "," + seed[1] + "(" + seed[2] + ")\t");
                             string[] ten = node.Attributes["ten"].Value.Split(',');
                             Console.WriteLine(ten[0] + "00\t" + ten[1] + "00\t" + ten[2] + "00\t" + ten[3] + "00");
-                            flagReach[0] = flagReach[1] = flagReach[2] = flagReach[3] = false;
+                            flagReach[0] = flagReach[1] = flagReach[2] = flagReach[3] = 0;
                             flagRPrint = false;
                             break;
                         //case "T":case "D":case "U":case "E":case "V":case "F":case "W":case "G":
-                        case "N":case "DORA":case "BYE":case "UN":
+                        case "N":
+                            int who = int.Parse(node.Attributes["who"].Value);
+                            int m = int.Parse(node.Attributes["m"].Value);
+                            if ((m & 0x0002) != who)
+                            {
+                                flagReach[who] = 2;
+                            }
+                            break;
+                        case "DORA":case "BYE":case "UN":
                             break;
                         case "REACH":
                             if (node.Attributes["step"].Value == "2")
                             {
-                                flagReach[int.Parse(node.Attributes["who"].Value)] = true;
+                                flagReach[int.Parse(node.Attributes["who"].Value)] = 1;
                             }
                             break;
                         case "AGARI":
@@ -253,7 +267,7 @@ namespace Tenhou
                 Console.Write("\t");
                 for (int j = 0; j < 4; j++)
                 {
-                    Console.Write("\t" + (flagReach[j] ? "立直" : ""));
+                    Console.Write("\t" + Reach[flagReach[j]]);
                 }
                 Console.WriteLine();
                 flagRPrint = true;
