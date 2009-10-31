@@ -94,6 +94,7 @@ namespace Tenhou
         static int[] flagReach = new int[4];
         static bool flagRPrint = false;
         static string splitLine = "  ----------------------------------------------";
+        private static bool flagCheckHai = true;
         static public void processMjlog(string dirName, string filePath)
         {
             string fileName = Path.GetFileName(filePath);
@@ -104,93 +105,95 @@ namespace Tenhou
             int[] nhai34 = new int[34];
             //try
             //{
-                using (FileStream fs = new FileStream(filePath, FileMode.Open))
-                using (GZipStream gzStream = new GZipStream(fs, CompressionMode.Decompress))
+            using (FileStream fs = new FileStream(filePath, FileMode.Open))
+            using (GZipStream gzStream = new GZipStream(fs, CompressionMode.Decompress))
+            {
+                XmlDocument xmlDoc = new XmlDocument();
+                xmlDoc.PreserveWhitespace = true;
+                xmlDoc.Load(gzStream);
+                XmlNode root = xmlDoc.DocumentElement;
+
+                XmlNode go = root.SelectSingleNode("GO");
+                int iTableType = int.Parse(go.Attributes["type"].Value);
+                string tableType = ((iTableType & 0x0008) != 0) ? "東南戦: " : "東風戦: ";
+                tableType += TableLvl[(iTableType & 0x0020) >> 4 | (iTableType & 0x0080) >> 7];
+                if ((iTableType & 0x0010) != 0) tableType += "三";
+                tableType += TableType[(iTableType & 0x06) >> 1];
+                if ((iTableType & 0x0040) != 0) tableType += "速";
+                string playTime = fileName.Substring(0, 4) + "-" + fileName.Substring(4, 2) + "-" + fileName.Substring(6, 2) + " " + fileName.Substring(8, 2) + ":**:**";
+
+                int me = int.Parse(fileName.Substring(35, 1));
+
+                Console.WriteLine("==== " + tableType + " " + playTime + " ====");
+
+                XmlNode players = root.SelectSingleNode("UN");
+                string[] playerName = new string[4];
+                string[] playerDan = players.Attributes["dan"].Value.Split(',');
+                string[] playerRate = players.Attributes["rate"].Value.Split(',');
+                string[] playerSx = players.Attributes["sx"].Value.Split(',');
+                //Console.Write("  ");
+                for (int i = 0; i < 4; i++)
                 {
-                    XmlDocument xmlDoc = new XmlDocument();
-                    xmlDoc.PreserveWhitespace = true;
-                    xmlDoc.Load(gzStream);
-                    XmlNode root = xmlDoc.DocumentElement;
-
-                    XmlNode go = root.SelectSingleNode("GO");
-                    int iTableType = int.Parse(go.Attributes["type"].Value);
-                    string tableType = ((iTableType & 0x0008) != 0) ? "東南戦: " : "東風戦: ";
-                    tableType += TableLvl[(iTableType & 0x0020) >> 4 | (iTableType & 0x0080) >> 7];
-                    if ((iTableType & 0x0010) != 0) tableType += "三";
-                    tableType += TableType[(iTableType & 0x06) >> 1];
-                    if ((iTableType & 0x0040) != 0) tableType += "速";
-                    string playTime = fileName.Substring(0, 4) + "-" + fileName.Substring(4, 2) + "-" + fileName.Substring(6, 2) + " " + fileName.Substring(8, 2) + ":**:**";
-
-                    int me = int.Parse(fileName.Substring(35, 1));
-
-                    Console.WriteLine("==== " + tableType + " " + playTime + " ====");
-
-                    XmlNode players = root.SelectSingleNode("UN");
-                    string[] playerName = new string[4];
-                    string[] playerDan = players.Attributes["dan"].Value.Split(',');
-                    string[] playerRate = players.Attributes["rate"].Value.Split(',');
-                    string[] playerSx = players.Attributes["sx"].Value.Split(',');
-                    //Console.Write("  ");
-                    for (int i = 0; i < 4; i++)
+                    string utf8EncStr = players.Attributes["n" + i.ToString()].Value;
+                    string[] utf8Vals = utf8EncStr.Split('%');
+                    byte[] chrArr = new byte[utf8Vals.Length - 1];
+                    for (int j = 1; j < utf8Vals.Length; j++)
                     {
-                        string utf8EncStr = players.Attributes["n" + i.ToString()].Value;
-                        string[] utf8Vals = utf8EncStr.Split('%');
-                        byte[] chrArr = new byte[utf8Vals.Length-1];
-                        for (int j = 1; j < utf8Vals.Length; j++)
-                        {
-                            chrArr[j-1] = (byte)Convert.ToInt32(utf8Vals[j], 16);
-                        }
-                        playerName[i] = new UTF8Encoding().GetString(chrArr);
-                        playerDan[i] = Dan[int.Parse(playerDan[i])];
-                        Console.Write("  [" + i.ToString() + "](" + playerDan[i] + " R" + playerRate[i] + ") " + playerName[i] + "(" + playerSx[i] + ")");
+                        chrArr[j - 1] = (byte)Convert.ToInt32(utf8Vals[j], 16);
                     }
-                    Console.WriteLine("");
+                    playerName[i] = new UTF8Encoding().GetString(chrArr);
+                    playerDan[i] = Dan[int.Parse(playerDan[i])];
+                    Console.Write("  [" + i.ToString() + "](" + playerDan[i] + " R" + playerRate[i] + ") " + playerName[i] + "(" + playerSx[i] + ")");
+                }
+                Console.WriteLine("");
 
-                    XmlNode node = players.NextSibling;
+                XmlNode node = players.NextSibling;
 
-                    while (node != null)
+                while (node != null)
+                {
+                    switch (node.Name)
                     {
-                        switch (node.Name)
+                    case "TAIKYOKU":
+                        string oya = node.Attributes["oya"].Value;
+                        //Console.WriteLine("  起家:" + oya);
+                        Console.WriteLine("\t\t[0]\t[1]\t[2]\t[3]");
+                        break;
+                    case "INIT":
+                        flagReach[0] = flagReach[1] = flagReach[2] = flagReach[3] = 0;
+                        flagRPrint = false;
+                        for (int i = 0; i < 136; i++)
                         {
-                        case "TAIKYOKU":
-                            string oya = node.Attributes["oya"].Value;
-                            //Console.WriteLine("  起家:" + oya);
-                            Console.WriteLine("\t\t[0]\t[1]\t[2]\t[3]");
-                            break;
-                        case "INIT":
-                            flagReach[0] = flagReach[1] = flagReach[2] = flagReach[3] = 0;
-                            flagRPrint = false;
-                            for (int i = 0; i < 136; i++)
-                            {
-                                tehai136[i] = false;
-                            }
-                            for (int i = 0; i < 34; i++)
-                            {
-                                tehai34[i] = 0;
-                                nhai34[i] = 0;
-                            }
-                            Console.WriteLine(splitLine);
-                            string[] seed = node.Attributes["seed"].Value.Split(',');
-                            Console.Write("  " + Ba[int.Parse(seed[0])] + "," + seed[1] + "(" + seed[2] + ")\t");
-                            nhai34[int.Parse(seed[5]) / 4]++; //Dora
-                            string[] ten = node.Attributes["ten"].Value.Split(',');
-                            Console.WriteLine(ten[0] + "00\t" + ten[1] + "00\t" + ten[2] + "00\t" + ten[3] + "00");
-                            string[] strHaipai = node.Attributes["hai" + me].Value.Split(',');
-                            foreach (string pai in strHaipai)
-                            {
-                                nhai34[int.Parse(pai) / 4]++;
-                                tehai34[int.Parse(pai) / 4]++;
-                            }
-                            break;
-                        //case "T":case "D":case "U":case "E":case "V":case "F":case "W":case "G":
-                        case "N":
-                            int who = int.Parse(node.Attributes["who"].Value);
-                            int m = int.Parse(node.Attributes["m"].Value);
-                            int fromWho = m & 0x0003;
-                            if (fromWho != who)
-                            {
-                                flagReach[who] = 2;
-                            }
+                            tehai136[i] = false;
+                        }
+                        for (int i = 0; i < 34; i++)
+                        {
+                            tehai34[i] = 0;
+                            nhai34[i] = 0;
+                        }
+                        Console.WriteLine(splitLine);
+                        string[] seed = node.Attributes["seed"].Value.Split(',');
+                        Console.Write("  " + Ba[int.Parse(seed[0])] + "," + seed[1] + "(" + seed[2] + ")\t");
+                        nhai34[int.Parse(seed[5]) / 4]++; //Dora
+                        string[] ten = node.Attributes["ten"].Value.Split(',');
+                        Console.WriteLine(ten[0] + "00\t" + ten[1] + "00\t" + ten[2] + "00\t" + ten[3] + "00");
+                        string[] strHaipai = node.Attributes["hai" + me].Value.Split(',');
+                        foreach (string pai in strHaipai)
+                        {
+                            nhai34[int.Parse(pai) / 4]++;
+                            tehai34[int.Parse(pai) / 4]++;
+                        }
+                        break;
+                    //case "T":case "D":case "U":case "E":case "V":case "F":case "W":case "G":
+                    case "N":
+                        int who = int.Parse(node.Attributes["who"].Value);
+                        int m = int.Parse(node.Attributes["m"].Value);
+                        int fromWho = m & 0x0003;
+                        if (fromWho != who)
+                        {
+                            flagReach[who] = 2;
+                        }
+                        if (flagCheckHai)
+                        {
                             if ((m & 0x0004) != 0)
                             {
                                 int type6 = (m & 0xfc00) >> 10;
@@ -199,7 +202,7 @@ namespace Tenhou
                                 int startHai = type6 / 7 * 9 + type6 % 7;
                                 if (who == me)
                                 {
-                                    for (int i = 0; i< 3; i ++)
+                                    for (int i = 0; i < 3; i++)
                                     {
                                         if (i != kuiHai)
                                         {
@@ -223,7 +226,7 @@ namespace Tenhou
                                     }
                                 }
                             }
-                            else if ((m& 0x0008) != 0)
+                            else if ((m & 0x0008) != 0)
                             {
                                 int type7 = (m & 0xfe00) >> 9;
                                 type7 /= 3;
@@ -240,7 +243,7 @@ namespace Tenhou
                                     nhai34[type7] += 2;
                                 }
                             }
-                            else if ((m&0x003c) == 0)
+                            else if ((m & 0x003c) == 0)
                             {
                                 int type8 = (m & 0xff00) >> 8;
                                 type8 /= 4;
@@ -265,142 +268,155 @@ namespace Tenhou
                                     nhai34[type8] = 4;
                                 }
                             }
-                            else if ((m & 0x0010) !=0)
+                            else if ((m & 0x0010) != 0)
                             {
                                 int type7 = (m & 0xfe00) >> 9;
                                 type7 /= 3;
                                 tehai34[type7] -= 1;
                                 Console.Write("加槓(" + Hai[type7] + "):");
                             }
-                            break;
-                        case "DORA":
-                            int hai = int.Parse(node.Attributes["hai"].Value) / 4;
-                            nhai34[hai]++;
-                            break;
-                        case "BYE":case "UN":
-                            break;
-                        case "REACH":
-                            if (node.Attributes["step"].Value == "2")
-                            {
-                                flagReach[int.Parse(node.Attributes["who"].Value)] = 1;
-                            }
-                            break;
-                        case "AGARI":
-                            ten = node.Attributes["ten"].Value.Split(',');
-                            string fu = ten[0]; string soten = ten[1]; string man = ManGan[int.Parse(ten[2])];
-                            int fan = 0;
-                            string yaku = "";
-
+                        }
+                        break;
+                    case "DORA":
+                        int hai = int.Parse(node.Attributes["hai"].Value) / 4;
+                        nhai34[hai]++;
+                        break;
+                    case "BYE":
+                    case "UN":
+                        break;
+                    case "REACH":
+                        if (node.Attributes["step"].Value == "2")
+                        {
                             who = int.Parse(node.Attributes["who"].Value);
-                            fromWho = int.Parse(node.Attributes["fromWho"].Value);
-                            if (who == fromWho)
+                            flagReach[who] = 1;
+                            if (flagCheckHai && who == me)
                             {
-                                yaku = "[" + who + "]自摸  ";
+                                Console.WriteLine("リーチ");
+                            }
+                        }
+                        break;
+                    case "AGARI":
+                        ten = node.Attributes["ten"].Value.Split(',');
+                        string fu = ten[0]; string soten = ten[1]; string man = ManGan[int.Parse(ten[2])];
+                        int fan = 0;
+                        string yaku = "";
+
+                        who = int.Parse(node.Attributes["who"].Value);
+                        fromWho = int.Parse(node.Attributes["fromWho"].Value);
+                        if (who == fromWho)
+                        {
+                            yaku = "[" + who + "]自摸  ";
+                        }
+                        else
+                        {
+                            yaku = "[" + who + "]栄[" + fromWho + "] ";
+                        }
+
+                        if (node.Attributes["yaku"] != null)
+                        {
+                            string[] nYaku = node.Attributes["yaku"].Value.Split(',');
+                            for (int j = 0; j < nYaku.Length; j += 2)
+                            {
+                                yaku += Yaku[int.Parse(nYaku[j])] + "(" + nYaku[j + 1] + ") ";
+                                fan += int.Parse(nYaku[j + 1]);
+                            }
+                            yaku += fu + "符" + fan.ToString() + "飜" + man + "(" + soten + ")";
+                        }
+                        else
+                        {
+                            string[] nYaku = node.Attributes["yakuman"].Value.Split(',');
+                            for (int j = 0; j < nYaku.Length; j++)
+                            {
+                                yaku += Yaku[int.Parse(nYaku[j])] + " ";
+                            }
+                            yaku += "(" + soten + ")";
+                        }
+                        // Reach
+                        PrintReach();
+
+                        // ten
+                        PrintTen(node, yaku);
+
+                        // final result
+                        PrintResult(node);
+
+                        break;
+                    case "RYUUKYOKU":
+                        PrintReach();
+                        string type = "流局";
+                        bool[] fhai = new bool[4];
+                        int flag = -1;
+                        for (int k = 0; k < 4; k++)
+                        {
+                            if (node.Attributes["hai" + k.ToString()] != null)
+                            {
+                                fhai[k] = true;
+                                flag = k;
                             }
                             else
                             {
-                                yaku = "[" + who + "]栄[" + fromWho + "] ";
+                                fhai[k] = false;
                             }
-                            
-                            if (node.Attributes["yaku"] != null)
+                        }
+                        if (node.Attributes["type"] == null)
+                        {
+                            if (flag == -1)
                             {
-                                string[] nYaku = node.Attributes["yaku"].Value.Split(',');
-                                for (int j = 0; j < nYaku.Length; j += 2)
-                                {
-                                    yaku += Yaku[int.Parse(nYaku[j])] + "(" + nYaku[j + 1] + ") ";
-                                    fan += int.Parse(nYaku[j + 1]);
-                                }
-                                yaku += fu + "符" + fan.ToString() + "飜" + man + "(" + soten + ")";
+                                type += "(ノーテン)";
                             }
-                            else
-                            {
-                                string[] nYaku = node.Attributes["yakuman"].Value.Split(',');
-                                for (int j = 0; j < nYaku.Length; j++)
-                                {
-                                    yaku += Yaku[int.Parse(nYaku[j])] + " ";
-                                }
-                                yaku += "(" + soten + ")";
-                            }
-                            // Reach
-                            PrintReach();
-
-                            // ten
-                            PrintTen(node, yaku);
-
-                            // final result
-                            PrintResult(node);
-
-                            break;
-                        case "RYUUKYOKU":
-                            PrintReach();
-                            string type = "流局";
-                            bool[] fhai = new bool[4];
-                            int flag = -1;
-                            for (int k = 0; k < 4; k++)
-                            {
-                                if (node.Attributes["hai" + k.ToString()] != null)
-                                {
-                                    fhai[k] = true;
-                                    flag = k;
-                                }
-                                else
-                                {
-                                    fhai[k] = false;
-                                }
-                            }
-                            if (node.Attributes["type"] == null)
-                            {
-                                if (flag == -1)
-                                {
-                                    type += "(ノーテン)";
-                                }
-                            }
-                            else switch (node.Attributes["type"].Value)
+                        }
+                        else switch (node.Attributes["type"].Value)
                             {
                             case "yao9":
                                 type = "九種九牌[" + flag.ToString() + "]";
                                 break;
                             default:
-                                throw(new IOException());
+                                throw (new IOException());
                                 break;
                             }
-                            PrintTen(node, type);
-                            PrintResult(node);
-                            break;
-                        default:
-                            if (node.Name[0] == 'T' + me)
+                        PrintTen(node, type);
+                        PrintResult(node);
+                        break;
+                    default:
+                        if (node.Name[0] == 'T' + me)
+                        {
+                            if (flagCheckHai)
                             {
-                                int pai = int.Parse(node.Name.Substring(1))/4;
-                                printTehai(tehai34, pai);
-                                Console.Write(" ");
-                                tehai34[pai]++;
-                                nhai34[pai]++;
-                                SyantenCheck(tehai34, nhai34);
+	                            int pai = int.Parse(node.Name.Substring(1)) / 4;
+	                            printTehai(tehai34, pai);
+	                            Console.Write(" ");
+	                            tehai34[pai]++;
+	                            nhai34[pai]++;
+	                            SyantenCheck(tehai34, nhai34);
                             }
-                            else if (node.Name[0] == 'D' + me)
-                            {
-                                int pai = int.Parse(node.Name.Substring(1))/4;
-                                tehai34[pai]--;
-                                Console.WriteLine("-" + Hai[pai]);
-                            }
-                            else if ((node.Name[0] >= 'D' && node.Name[0] <= 'G')  && (node.Name[1] >= '0' && node.Name[1] <='9'))
-                            {
-                                int pai = int.Parse(node.Name.Substring(1)) / 4;
-                                nhai34[pai]++;
-                            }
-                            else if ((node.Name[0] >= 'T' && node.Name[0] <= 'W') &&  (node.Name[1] >= '0' && node.Name[1] <='9'))
-                            {
-                                ;
-                            }
-                            else
-                            {
-                                throw(new IOException());
-                            }
-                            break;
                         }
-                        node = node.NextSibling;
+                        else if (node.Name[0] == 'D' + me)
+                        {
+                            if (flagCheckHai)
+                            {
+	                            int pai = int.Parse(node.Name.Substring(1)) / 4;
+	                            tehai34[pai]--;
+	                            Console.WriteLine("-" + Hai[pai]);
+                            }
+                        }
+                        else if ((node.Name[0] >= 'D' && node.Name[0] <= 'G') && (node.Name[1] >= '0' && node.Name[1] <= '9'))
+                        {
+                            int pai = int.Parse(node.Name.Substring(1)) / 4;
+                            nhai34[pai]++;
+                        }
+                        else if ((node.Name[0] >= 'T' && node.Name[0] <= 'W') && (node.Name[1] >= '0' && node.Name[1] <= '9'))
+                        {
+                            ;
+                        }
+                        else
+                        {
+                            throw (new IOException());
+                        }
+                        break;
                     }
+                    node = node.NextSibling;
                 }
+            }
             //}
             //catch (Exception ex)
             //{
@@ -469,9 +485,9 @@ namespace Tenhou
 
         static private void printTehai(int[] tehai, int tsumo)
         {
-            for (int i=0; i<34; i++)
+            for (int i = 0; i < 34; i++)
             {
-                for (int j = 0; j< tehai[i]; j++)
+                for (int j = 0; j < tehai[i]; j++)
                 {
                     Console.Write(Hai[i]);
                 }
