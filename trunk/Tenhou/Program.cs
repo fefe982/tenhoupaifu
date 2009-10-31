@@ -104,6 +104,7 @@ namespace Tenhou
             int[] tehai34 = new int[34];
             int[] nhai34 = new int[34];
             int lastAction = -1;
+            int jun = 0;
             //try
             //{
             using (FileStream fs = new FileStream(filePath, FileMode.Open))
@@ -172,6 +173,7 @@ namespace Tenhou
                             nhai34[i] = 0;
                         }
                         lastAction = -1;
+                        jun = 0;
                         Console.WriteLine(splitLine);
                         string[] seed = node.Attributes["seed"].Value.Split(',');
                         Console.Write("  " + Ba[int.Parse(seed[0])] + "," + seed[1] + "(" + seed[2] + ")\t");
@@ -271,11 +273,11 @@ namespace Tenhou
                                 {
                                     nhai34[type8] = 4;
                                 }
-                                lastAction = 1;
+                                lastAction = 2;
                             }
                             else if ((m & 0x0010) != 0)
                             {
-                                lastAction = 1;
+                                lastAction = 2;
                                 int type7 = (m & 0xfe00) >> 9;
                                 type7 /= 3;
                                 tehai34[type7] -= 1;
@@ -391,11 +393,15 @@ namespace Tenhou
                     default:
                         if (node.Name[0] == 'T' + me)
                         {
+                            if (lastAction != 2)
+                            {
+                                jun++;
+                            }
                             lastAction = 0;
                             if (flagCheckHai)
                             {
 	                            int pai = int.Parse(node.Name.Substring(1)) / 4;
-                                Console.Write("["+me+"]");
+                                Console.Write("[" + me + "]:{" + jun + "}");
 	                            printTehai(tehai34, pai);
 	                            Console.Write(" ");
 	                            tehai34[pai]++;
