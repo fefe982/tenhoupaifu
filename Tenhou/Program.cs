@@ -103,6 +103,7 @@ namespace Tenhou
             bool[] tehai136 = new bool[136];
             int[] tehai34 = new int[34];
             int[] nhai34 = new int[34];
+            int lastAction = -1;
             //try
             //{
             using (FileStream fs = new FileStream(filePath, FileMode.Open))
@@ -170,6 +171,7 @@ namespace Tenhou
                             tehai34[i] = 0;
                             nhai34[i] = 0;
                         }
+                        lastAction = -1;
                         Console.WriteLine(splitLine);
                         string[] seed = node.Attributes["seed"].Value.Split(',');
                         Console.Write("  " + Ba[int.Parse(seed[0])] + "," + seed[1] + "(" + seed[2] + ")\t");
@@ -196,6 +198,7 @@ namespace Tenhou
                         {
                             if ((m & 0x0004) != 0)
                             {
+                                lastAction = 0;
                                 int type6 = (m & 0xfc00) >> 10;
                                 int kuiHai = type6 % 3;
                                 type6 /= 3;
@@ -228,6 +231,7 @@ namespace Tenhou
                             }
                             else if ((m & 0x0008) != 0)
                             {
+                                lastAction = 0;
                                 int type7 = (m & 0xfe00) >> 9;
                                 type7 /= 3;
                                 if (who == me)
@@ -249,7 +253,7 @@ namespace Tenhou
                                 type8 /= 4;
                                 if (who == me)
                                 {
-                                    if (who == fromWho)
+                                    if (lastAction == 0)
                                     {
                                         tehai34[type8] -= 4;
                                         Console.Write("暗槓(" + Hai[type8] + "):");
@@ -267,9 +271,11 @@ namespace Tenhou
                                 {
                                     nhai34[type8] = 4;
                                 }
+                                lastAction = 1;
                             }
                             else if ((m & 0x0010) != 0)
                             {
+                                lastAction = 1;
                                 int type7 = (m & 0xfe00) >> 9;
                                 type7 /= 3;
                                 tehai34[type7] -= 1;
@@ -289,9 +295,14 @@ namespace Tenhou
                         {
                             who = int.Parse(node.Attributes["who"].Value);
                             flagReach[who] = 1;
-                            if (flagCheckHai && who == me)
+                            if (flagCheckHai)
                             {
-                                Console.WriteLine("リーチ");
+                                Console.Write("リーチ");
+                                if(who != me)
+                                {
+                                    Console.Write("[" + who + "]");
+                                }
+                                Console.WriteLine("");
                             }
                         }
                         break;
@@ -380,9 +391,11 @@ namespace Tenhou
                     default:
                         if (node.Name[0] == 'T' + me)
                         {
+                            lastAction = 0;
                             if (flagCheckHai)
                             {
 	                            int pai = int.Parse(node.Name.Substring(1)) / 4;
+                                Console.Write("["+me+"]");
 	                            printTehai(tehai34, pai);
 	                            Console.Write(" ");
 	                            tehai34[pai]++;
@@ -392,6 +405,7 @@ namespace Tenhou
                         }
                         else if (node.Name[0] == 'D' + me)
                         {
+                            lastAction = 1;
                             if (flagCheckHai)
                             {
 	                            int pai = int.Parse(node.Name.Substring(1)) / 4;
@@ -401,12 +415,13 @@ namespace Tenhou
                         }
                         else if ((node.Name[0] >= 'D' && node.Name[0] <= 'G') && (node.Name[1] >= '0' && node.Name[1] <= '9'))
                         {
+                            lastAction = 1;
                             int pai = int.Parse(node.Name.Substring(1)) / 4;
                             nhai34[pai]++;
                         }
                         else if ((node.Name[0] >= 'T' && node.Name[0] <= 'W') && (node.Name[1] >= '0' && node.Name[1] <= '9'))
                         {
-                            ;
+                            lastAction = 0;
                         }
                         else
                         {
@@ -428,10 +443,14 @@ namespace Tenhou
             Syanten syanten = new Syanten();
             int syanten_org = syanten.getSyanTen(tehai34, nhai34);
             Console.WriteLine(syanten_org);
+            if (syanten_org < 0)
+            {
+                return;
+            }
             List<SyantenMachi> v = new List<SyantenMachi>();
             // if (syanten_org<=0)
             {
-                int syanten_bound = syanten_org < 0 ? 0 : syanten_org;
+                int syanten_bound = syanten_org;// < 0 ? 0 : syanten_org;
                 for (int i = 0; i < 34; ++i)
                 {
                     if (tehai34[i] == 0)
