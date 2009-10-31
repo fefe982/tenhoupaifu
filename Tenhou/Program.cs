@@ -84,6 +84,13 @@ namespace Tenhou
             "立直",
             "副露"
         };
+        private static string[] Hai =
+        {
+            "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
+            "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
+            "1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
+            "東", "南", "西", "北", "白", "発", "中"
+        };
         static int[] flagReach = new int[4];
         static bool flagRPrint = false;
         static string splitLine = "  ----------------------------------------------";
@@ -91,6 +98,10 @@ namespace Tenhou
         {
             string fileName = Path.GetFileName(filePath);
             Console.WriteLine(fileName);
+
+            bool[] tehai136 = new bool[136];
+            int[] tehai34 = new int[34];
+            int[] nhai34 = new int[34];
             //try
             //{
                 using (FileStream fs = new FileStream(filePath, FileMode.Open))
@@ -109,6 +120,9 @@ namespace Tenhou
                     tableType += TableType[(iTableType & 0x06) >> 1];
                     if ((iTableType & 0x0040) != 0) tableType += "速";
                     string playTime = fileName.Substring(0, 4) + "-" + fileName.Substring(4, 2) + "-" + fileName.Substring(6, 2) + " " + fileName.Substring(8, 2) + ":**:**";
+
+                    int me = int.Parse(fileName.Substring(35, 1));
+
                     Console.WriteLine("==== " + tableType + " " + playTime + " ====");
 
                     XmlNode players = root.SelectSingleNode("UN");
@@ -144,24 +158,126 @@ namespace Tenhou
                             Console.WriteLine("\t\t[0]\t[1]\t[2]\t[3]");
                             break;
                         case "INIT":
+                            flagReach[0] = flagReach[1] = flagReach[2] = flagReach[3] = 0;
+                            flagRPrint = false;
+                            for (int i = 0; i < 136; i++)
+                            {
+                                tehai136[i] = false;
+                            }
+                            for (int i = 0; i < 34; i++)
+                            {
+                                tehai34[i] = 0;
+                                nhai34[i] = 0;
+                            }
                             Console.WriteLine(splitLine);
                             string[] seed = node.Attributes["seed"].Value.Split(',');
                             Console.Write("  " + Ba[int.Parse(seed[0])] + "," + seed[1] + "(" + seed[2] + ")\t");
+                            nhai34[int.Parse(seed[5]) / 4]++; //Dora
                             string[] ten = node.Attributes["ten"].Value.Split(',');
                             Console.WriteLine(ten[0] + "00\t" + ten[1] + "00\t" + ten[2] + "00\t" + ten[3] + "00");
-                            flagReach[0] = flagReach[1] = flagReach[2] = flagReach[3] = 0;
-                            flagRPrint = false;
+                            string[] strHaipai = node.Attributes["hai" + me].Value.Split(',');
+                            foreach (string pai in strHaipai)
+                            {
+                                nhai34[int.Parse(pai) / 4]++;
+                                tehai34[int.Parse(pai) / 4]++;
+                            }
                             break;
                         //case "T":case "D":case "U":case "E":case "V":case "F":case "W":case "G":
                         case "N":
                             int who = int.Parse(node.Attributes["who"].Value);
                             int m = int.Parse(node.Attributes["m"].Value);
-                            if ((m & 0x0002) != who)
+                            int fromWho = m & 0x0003;
+                            if (fromWho != who)
                             {
                                 flagReach[who] = 2;
                             }
+                            if ((m & 0x0004) != 0)
+                            {
+                                int type6 = (m & 0xfc00) >> 10;
+                                int kuiHai = type6 % 3;
+                                type6 /= 3;
+                                int startHai = type6 / 7 * 9 + type6 % 7;
+                                if (who == me)
+                                {
+                                    for (int i = 0; i< 3; i ++)
+                                    {
+                                        if (i != kuiHai)
+                                        {
+                                            tehai34[startHai + i]--;
+                                        }
+                                    }
+                                    Console.Write("チー[" + fromWho + "](" + Hai[startHai + kuiHai] + "-" +
+                                        Hai[startHai] + Hai[startHai + 1] + Hai[startHai + 2] + "):");
+                                    printTehai(tehai34, -1);
+                                    Console.Write(" ");
+                                    SyantenCheck(tehai34, nhai34);
+                                }
+                                else
+                                {
+                                    for (int i = 0; i < 3; i++)
+                                    {
+                                        if (i != kuiHai)
+                                        {
+                                            nhai34[startHai + i]++;
+                                        }
+                                    }
+                                }
+                            }
+                            else if ((m& 0x0008) != 0)
+                            {
+                                int type7 = (m & 0xfe00) >> 9;
+                                type7 /= 3;
+                                if (who == me)
+                                {
+                                    tehai34[type7] -= 2;
+                                    Console.Write("ポン[" + fromWho + "](" + Hai[type7] + "):");
+                                    printTehai(tehai34, -1);
+                                    Console.Write(" ");
+                                    SyantenCheck(tehai34, nhai34);
+                                }
+                                else
+                                {
+                                    nhai34[type7] += 2;
+                                }
+                            }
+                            else if ((m&0x003c) == 0)
+                            {
+                                int type8 = (m & 0xff00) >> 8;
+                                type8 /= 4;
+                                if (who == me)
+                                {
+                                    if (who == fromWho)
+                                    {
+                                        tehai34[type8] -= 4;
+                                        Console.Write("暗槓(" + Hai[type8] + "):");
+                                    }
+                                    else
+                                    {
+                                        tehai34[type8] -= 3;
+                                        Console.Write("明槓(" + Hai[type8] + "):");
+                                    }
+                                    //printTehai(tehai34, -1);
+                                    Console.WriteLine("");
+                                    //SyantenCheck(tehai34, nhai34);
+                                }
+                                else
+                                {
+                                    nhai34[type8] = 4;
+                                }
+                            }
+                            else if ((m & 0x0010) !=0)
+                            {
+                                int type7 = (m & 0xfe00) >> 9;
+                                type7 /= 3;
+                                tehai34[type7] -= 1;
+                                Console.Write("加槓(" + Hai[type7] + "):");
+                            }
                             break;
-                        case "DORA":case "BYE":case "UN":
+                        case "DORA":
+                            int hai = int.Parse(node.Attributes["hai"].Value) / 4;
+                            nhai34[hai]++;
+                            break;
+                        case "BYE":case "UN":
                             break;
                         case "REACH":
                             if (node.Attributes["step"].Value == "2")
@@ -176,7 +292,7 @@ namespace Tenhou
                             string yaku = "";
 
                             who = int.Parse(node.Attributes["who"].Value);
-                            int fromWho = int.Parse(node.Attributes["fromWho"].Value);
+                            fromWho = int.Parse(node.Attributes["fromWho"].Value);
                             if (who == fromWho)
                             {
                                 yaku = "[" + who + "]自摸  ";
@@ -252,7 +368,27 @@ namespace Tenhou
                             PrintResult(node);
                             break;
                         default:
-                            if (((node.Name[0] >= 'D' && node.Name[0] <= 'G') || (node.Name[0] >= 'T' && node.Name[0] <= 'W')) && (node.Name[1] >= '0' && node.Name[1] <='9'))
+                            if (node.Name[0] == 'T' + me)
+                            {
+                                int pai = int.Parse(node.Name.Substring(1))/4;
+                                printTehai(tehai34, pai);
+                                Console.Write(" ");
+                                tehai34[pai]++;
+                                nhai34[pai]++;
+                                SyantenCheck(tehai34, nhai34);
+                            }
+                            else if (node.Name[0] == 'D' + me)
+                            {
+                                int pai = int.Parse(node.Name.Substring(1))/4;
+                                tehai34[pai]--;
+                                Console.WriteLine("-" + Hai[pai]);
+                            }
+                            else if ((node.Name[0] >= 'D' && node.Name[0] <= 'G')  && (node.Name[1] >= '0' && node.Name[1] <='9'))
+                            {
+                                int pai = int.Parse(node.Name.Substring(1)) / 4;
+                                nhai34[pai]++;
+                            }
+                            else if ((node.Name[0] >= 'T' && node.Name[0] <= 'W') &&  (node.Name[1] >= '0' && node.Name[1] <='9'))
                             {
                                 ;
                             }
@@ -264,12 +400,86 @@ namespace Tenhou
                         }
                         node = node.NextSibling;
                     }
-
                 }
             //}
             //catch (Exception ex)
             //{
             //}
+        }
+
+        static private void SyantenCheck(int[] tehai34, int[] nhai34)
+        {
+            Syanten syanten = new Syanten();
+            int syanten_org = syanten.getSyanTen(tehai34, nhai34);
+            Console.WriteLine(syanten_org);
+            List<SyantenMachi> v = new List<SyantenMachi>();
+            // if (syanten_org<=0)
+            {
+                int syanten_bound = syanten_org < 0 ? 0 : syanten_org;
+                for (int i = 0; i < 34; ++i)
+                {
+                    if (tehai34[i] == 0)
+                    {
+                        continue;
+                    }
+                    tehai34[i]--; // 打
+                    //v[i]=c_enum_machi34(c);
+                    SyantenMachi smachi = new SyantenMachi();
+                    smachi.kiri = i;
+
+                    for (int j = 0; j < 34; ++j)
+                    {
+                        if (i == j || nhai34[j] >= 4)
+                        {
+                            continue;
+                        }
+                        tehai34[j]++; // 摸
+                        nhai34[j]++;
+
+                        if (syanten.getSyanTen(tehai34, nhai34) < syanten_bound)
+                        {
+                            smachi.machihai.Insert(0, j);
+                        }
+                        tehai34[j]--;
+                        nhai34[j]--;
+                    }
+                    if (smachi.machihai.Count > 0)
+                    {
+                        for (int j = 0; j < smachi.machihai.Count; j++)
+                        {
+                            smachi.num += 4 - nhai34[smachi.machihai[j]];
+                        }
+                        smachi.machihai.Reverse();
+                        v.Insert(0, smachi);
+                    }
+                    tehai34[i]++;
+                }
+                v.Sort();
+                foreach (SyantenMachi sm in v)
+                {
+                    Console.Write("    -" + Hai[sm.kiri] + ":+");
+                    foreach (int p in sm.machihai)
+                    {
+                        Console.Write(Hai[p]);
+                    }
+                    Console.WriteLine(" : " + sm.num);
+                }
+            }
+        }
+
+        static private void printTehai(int[] tehai, int tsumo)
+        {
+            for (int i=0; i<34; i++)
+            {
+                for (int j = 0; j< tehai[i]; j++)
+                {
+                    Console.Write(Hai[i]);
+                }
+            }
+            if (tsumo >= 0)
+            {
+                Console.Write("+" + Hai[tsumo]);
+            }
         }
 
         static private void PrintReach()
@@ -335,6 +545,18 @@ namespace Tenhou
                 Console.WriteLine();
                 Console.WriteLine();
             }
+        }
+    }
+
+    class SyantenMachi : IComparable<SyantenMachi>
+    {
+        public List<int> machihai = new List<int>();
+        public int num = 0;
+        public int kiri = -1;
+
+        public int CompareTo(SyantenMachi right)
+        {
+            return right.num - num;
         }
     }
 }
