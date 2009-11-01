@@ -280,8 +280,15 @@ namespace Tenhou
                                 lastAction = 2;
                                 int type7 = (m & 0xfe00) >> 9;
                                 type7 /= 3;
-                                tehai34[type7] -= 1;
-                                Console.Write("加槓(" + Hai[type7] + "):");
+                                if (who == me)
+                                {
+                                    tehai34[type7] -= 1;
+                                    Console.Write("加槓(" + Hai[type7] + "):");
+                                }
+                                else
+                                {
+                                    nhai34[type7] = 4;
+                                }
                             }
                         }
                         break;
