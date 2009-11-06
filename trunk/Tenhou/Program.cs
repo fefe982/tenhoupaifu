@@ -385,15 +385,21 @@ namespace Tenhou
                                 type += "(ノーテン)";
                             }
                         }
-                        else switch (node.Attributes["type"].Value)
+                        else
+                        {
+                            switch (node.Attributes["type"].Value)
                             {
                             case "yao9":
                                 type = "九種九牌[" + flag.ToString() + "]";
+                                break;
+                            case "kaze4":
+                                type = "四風連打";
                                 break;
                             default:
                                 throw (new IOException());
                                 break;
                             }
+                        }
                         PrintTen(node, type);
                         PrintResult(node);
                         break;
