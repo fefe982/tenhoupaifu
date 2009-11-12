@@ -12,12 +12,27 @@ namespace Tenhou
     {
         static void Main(string[] args)
         {
-            string dirPath = args[0];
-            string dirName = "200910";
+            string dirPath = null;
+            foreach (string arg in args)
+            {
+                switch (arg)
+                {
+                case "-verbose":
+                    TenhouAna.flagCheckHai = true;
+                    break;
+                default:
+                    dirPath = arg;
+                    break;
+                }
+            }
+            if (dirPath == null)
+            {
+                return;
+            }
             string[] files = Directory.GetFiles(dirPath, "*.mjlog");
             foreach (string filePath in files)
             {
-                TenhouAna.processMjlog(dirName, filePath);
+                TenhouAna.processMjlog(filePath);
             }
         }
     }
@@ -95,8 +110,8 @@ namespace Tenhou
         static bool flagRPrint = false;
         static bool flagSyantenP = false;
         static string splitLine = "  ----------------------------------------------";
-        private static bool flagCheckHai = true;
-        static public void processMjlog(string dirName, string filePath)
+        public static bool flagCheckHai = false;
+        static public void processMjlog(string filePath)
         {
             string fileName = Path.GetFileName(filePath);
             Console.WriteLine(fileName);
