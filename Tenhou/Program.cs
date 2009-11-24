@@ -533,6 +533,9 @@ namespace Tenhou
                             case "kaze4":
                                 type = "四風連打";
                                 break;
+                            case "reach4":
+                                type = "四家立直";
+                                break;
                             case "nm":
                                 type = "流し満貫";
                                 break;
