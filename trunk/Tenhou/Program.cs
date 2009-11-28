@@ -466,11 +466,11 @@ namespace Tenhou
                             fromWho = int.Parse(agariNode.Attributes["fromWho"].Value);
                             if (who == fromWho)
                             {
-                                yaku = "[" + who + "]自摸  ";
+                                yaku = "[" + who + "]{" + string.Format("{0,2}", jun[who]) + "}自摸  ";
                             }
                             else
                             {
-                                yaku = "[" + who + "]栄[" + fromWho + "] ";
+                                yaku = "[" + who + "]{" + string.Format("{0,2}", jun[who]) + "}栄[" + fromWho + "] ";
                             }
 
                             if (agariNode.Attributes["yaku"] != null)
@@ -757,6 +757,7 @@ namespace Tenhou
                     }
                     if (agariWho != null && agariWho.IndexOf(j) != -1)
                     {
+                        //FIXME: this may be not right when Chakan happens
                         Console.Write("[" + numMachi + "," + (numHai + 1) + "]");
                     }
                     else
