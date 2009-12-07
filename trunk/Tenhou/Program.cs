@@ -159,6 +159,7 @@ namespace Tenhou
                 int[][] tehai34 = new int[Nman][];
                 int[][] nhai34 = new int[Nman][];
                 enmLastAction[] lastAction = new enmLastAction[Nman];
+                int lastActionPlayer = 0;
                 int[] jun = new int[Nman];
                 int[] lastTsumo = new int[Nman];
                 flagReach = new bool[Nman];
@@ -204,6 +205,7 @@ namespace Tenhou
 
                 XmlNode node = players.NextSibling;
 
+                int who;
                 while (node != null)
                 {
                     switch (node.Name)
@@ -228,6 +230,7 @@ namespace Tenhou
                                 nhai34[i][j] = 0;
                             }
                             lastAction[i] = enmLastAction.enmLAInit;
+                            lastActionPlayer = 0;
                             jun[i] = 0;
                             lastTsumo[i] = -1;
                             flagReach[i] = false;
@@ -258,7 +261,7 @@ namespace Tenhou
                         break;
                     //case "T":case "D":case "U":case "E":case "V":case "F":case "W":case "G":
                     case "N":
-                        int who = int.Parse(node.Attributes["who"].Value);
+                        who = int.Parse(node.Attributes["who"].Value);
                         int m = int.Parse(node.Attributes["m"].Value);
                         int fromWho = (m & 0x0003 + me) % 4;
                         bool flagFuro = true;
@@ -403,6 +406,7 @@ namespace Tenhou
                             }
                             nFuro[who]++;
                         }
+                        lastActionPlayer = who;
                         break;
                     case "DORA":
                         int hai = int.Parse(node.Attributes["hai"].Value) / 4;
@@ -536,6 +540,9 @@ namespace Tenhou
                             case "reach4":
                                 type = "四家立直";
                                 break;
+                            case "kan4":
+                                type = "四槓散了[" + lastActionPlayer.ToString() + "]";
+                                break;
                             case "nm":
                                 type = "流し満貫";
                                 break;
@@ -594,6 +601,7 @@ namespace Tenhou
                         {
                             throw (new IOException());
                         }
+                        lastActionPlayer = who;
                         break;
                     }
                     node = node.NextSibling;
