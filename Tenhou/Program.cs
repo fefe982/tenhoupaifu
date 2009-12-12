@@ -108,6 +108,8 @@ namespace Tenhou
             "1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
             "東", "南", "西", "北", "白", "発", "中"
         };
+        private static int[] RateShift4 = { 30, 10, -10, -30 };
+        private static int[] RateShift3 = { 30, 0, -30 };
         private enum enmLastAction
         {
             enmLAInit = -1,
@@ -162,6 +164,7 @@ namespace Tenhou
                 int lastActionPlayer = 0;
                 int[] jun = new int[Nman];
                 int[] lastTsumo = new int[Nman];
+
                 flagReach = new bool[Nman];
                 nReachJun = new int[Nman];
                 nFuro = new int[Nman];
@@ -187,6 +190,9 @@ namespace Tenhou
                 string[] playerDan = players.Attributes["dan"].Value.Split(',');
                 string[] playerRate = players.Attributes["rate"].Value.Split(',');
                 string[] playerSx = players.Attributes["sx"].Value.Split(',');
+                double selfRate = 0;
+                double avgRate = 0;
+
                 //Console.Write("  ");
                 for (int i = 0; i < Nman; i++)
                 {
@@ -200,7 +206,14 @@ namespace Tenhou
                     playerName[i] = new UTF8Encoding().GetString(chrArr);
                     playerDan[i] = Dan[int.Parse(playerDan[i])];
                     Console.Write("  [" + i.ToString() + "](" + playerDan[i] + " R" + playerRate[i] + ") " + playerName[i] + "(" + playerSx[i] + ")");
+                    double dRate = double.Parse(playerRate[i]);
+                    avgRate += dRate;
+                    if (i == me)
+                    {
+                        selfRate = dRate;
+                    }
                 }
+                avgRate /= Nman;
                 Console.WriteLine("");
 
                 XmlNode node = players.NextSibling;
@@ -501,7 +514,7 @@ namespace Tenhou
                             PrintTen(agariNode, yaku);
                         }
                         // final result
-                        PrintResult(node);
+                        PrintResult(node, me, selfRate, avgRate);
                         break;
                     case "RYUUKYOKU":
                         PrintReach();
@@ -552,7 +565,7 @@ namespace Tenhou
                         }
                         PrintTen(node, type);
                         PrintSyanten(node, null, false, tehai34, nhai34, lastTsumo);
-                        PrintResult(node);
+                        PrintResult(node, me, selfRate, avgRate);
                         break;
                     default:
                         if (node.Name[0] >= 'T' && node.Name[0] <= 'W')
@@ -801,11 +814,12 @@ namespace Tenhou
             Console.WriteLine("\t" + yaku);
         }
 
-        private void PrintResult(XmlNode node)
+        private void PrintResult(XmlNode node, int me, double selfRate, double avgRate)
         {
             if (node.Attributes["owari"] != null)
             {
                 string[] fnlTen = node.Attributes["owari"].Value.Split(',');
+                int[] nTen = new int[Nman];
                 Console.WriteLine(splitLine);
                 Console.Write("  結果\t");
                 for (int j = 0; j < Nman; j++)
@@ -814,15 +828,38 @@ namespace Tenhou
                 }
                 Console.WriteLine();
                 Console.Write("\t");
+                nTen[me] = int.Parse(fnlTen[me * 2 + 1]);
+                int place = 0;
                 for (int j = 0; j < Nman; j++)
                 {
                     string shiten = fnlTen[j * 2 + 1];
+                    if (j != me)
+                    {
+                        nTen[j] = int.Parse(shiten);
+                        if (nTen[j] > nTen[me])
+                        {
+                            place++;
+                        }
+                    }
                     if (shiten[0] != '0' && shiten[0] != '-')
                     {
                         shiten = "+" + shiten;
                     }
                     Console.Write("\t" + shiten);
                 }
+
+                double RShift;
+                if (Nman == 4)
+                {
+                    RShift = RateShift4[place] + (avgRate - selfRate) / 40;
+                }
+                else
+                {
+                    RShift = RateShift3[place] + (avgRate - selfRate) / 40;
+                }
+
+                Console.Write("\t(Rate:" + RShift.ToString("0.00") + "," + (RShift * 0.2).ToString("0.00") + ")");
+
                 Console.WriteLine();
                 Console.WriteLine();
             }
